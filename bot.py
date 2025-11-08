@@ -1,56 +1,13 @@
 import discord
 from discord import app_commands
 import yaml
-import requests
-import datetime
 import asyncio
 
 import database
-from models import Guild
-from sqlalchemy import select, update
-
+from wordle_api import get_today_answer
+from guild_functions import get_guild, change_enabled
 
 CONFIG_PATH = "config.yaml"
-
-async def get_guild(guild_id: int) -> Guild:
-    async with database.AsyncSessionLocal() as session:
-        result = await session.execute(
-            select(Guild).where(Guild.discord_id == guild_id)
-        )
-        guild = result.scalars().first()
-        if not guild:
-            guild = Guild(discord_id=guild_id)
-            session.add(guild)
-            await session.commit()
-            await session.refresh(guild)
-        return guild
-
-async def change_enabled(guild: Guild, enabled: bool):
-    async with database.AsyncSessionLocal() as session:
-        result = await session.execute(
-            select(Guild).where(Guild.id == guild.id)
-        )
-        guild_db = result.scalars().first()
-        if guild_db:
-            guild_db.enabled = enabled
-            await session.commit()
-
-
-def fetch_answer_from_api() -> dict:
-    today_date_str = datetime.datetime.now().strftime("%Y-%m-%d")
-    r = requests.get(f"https://www.nytimes.com/svc/wordle/v2/{today_date_str}.json")
-    print("Request done")
-    if r.status_code == 200:
-        return r.json()
-    raise Exception("Failed to fetch Wordle answer from API")
-
-def get_today_answer(answer_cache) -> str:
-    if answer_cache["date"] == datetime.date.today():
-        return answer_cache["word"]
-    word = fetch_answer_from_api().get("solution", "").lower()
-    answer_cache["word"] = word
-    answer_cache["date"] = datetime.date.today()
-    return word
 
 def load_config() -> dict:
     with open(CONFIG_PATH, "r") as f:
@@ -74,36 +31,35 @@ client = Client()
 async def enable_anticheat(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
     if not interaction.user.guild_permissions.administrator:
-        await interaction.followup.send("Only for administrators!")
+        await interaction.followup.send(":lock: **Access denied!** This command is only for server administrators.")
         return
     guild = await get_guild(interaction.guild.id)
     if guild.enabled:
-        await interaction.followup.send("Wordle anti-cheat is already enabled in this server.")
+        await interaction.followup.send(":information_source: Wordle anti-cheat is already **enabled** in this server.")
         return
     await change_enabled(guild, True)
-    await interaction.followup.send("Wordle anti-cheat successfully enabled.")
+    await interaction.followup.send(":white_check_mark: Wordle anti-cheat **successfully enabled**.")
 
 @client.tree.command(name="disable", description="Disable Wordle anti-cheat")
 async def disable_anticheat(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
     if not interaction.user.guild_permissions.administrator:
-        await interaction.followup.send("Only for administrators!")
+        await interaction.followup.send(":lock: **Access denied!** This command is only for server administrators.")
         return
     guild = await get_guild(interaction.guild.id)
     if not guild.enabled:
-        await interaction.followup.send("Wordle anti-cheat is already disabled in this server.")
+        await interaction.followup.send(":information_source: Wordle anti-cheat is already **disabled** in this server.")
         return
     await change_enabled(guild, False)
-    await interaction.followup.send("Wordle anti-cheat successfully disabled.")
+    await interaction.followup.send(":negative_squared_cross_mark: Wordle anti-cheat **successfully disabled**.")
 
 @client.tree.command(name="status", description="Get status of Wordle anti-cheat")
 async def anticheat_status(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
     guild = await get_guild(interaction.guild.id)
-    message = f"Wordle anti-cheat is currently **{'enabled' if guild.enabled else 'disabled'}** in this server.\n"
+    message = f"Wordle anti-cheat is currently **{':white_check_mark: enabled' if guild.enabled else ':negative_squared_cross_mark: disabled'}** in this server.\n"
     message += f"Use `{'/enable' if not guild.enabled else '/disable'}` to {'enable' if not guild.enabled else 'disable'} it."
     await interaction.followup.send(message)
-    # await interaction.followup.send("Not implemented yet.")
 
 @client.event
 async def on_message(message: discord.Message):
@@ -114,7 +70,7 @@ async def on_message(message: discord.Message):
         return
     if get_today_answer(client.answer_cache) in message.content.lower():
         await message.delete()
-        await message.channel.send(f"{message.author.mention}, your message has been deleted because it contained today's Wordle answer.", silent=True)
+        await message.channel.send(f":warning: {message.author.mention}, your message has been deleted because it contained today's Wordle answer.", silent=True)
 
 def main():
     config = load_config()
