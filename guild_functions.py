@@ -4,7 +4,7 @@ import database
 from models import Guild
 
 async def get_guild(guild_id: int) -> Guild:
-    async with database.AsyncSessionLocal() as session:
+    async with database.get_session() as session:
         result = await session.execute(
             select(Guild).where(Guild.discord_id == guild_id)
         )
@@ -16,8 +16,8 @@ async def get_guild(guild_id: int) -> Guild:
             await session.refresh(guild)
         return guild
 
-async def change_enabled(guild: Guild, enabled: bool):
-    async with database.AsyncSessionLocal() as session:
+async def change_enabled(guild: Guild, enabled: bool) -> None:
+    async with database.get_session() as session:
         result = await session.execute(
             select(Guild).where(Guild.id == guild.id)
         )

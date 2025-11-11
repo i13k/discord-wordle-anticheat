@@ -14,13 +14,13 @@ def load_config() -> dict:
         return yaml.safe_load(f) or {}
 
 class Client(discord.Client):
-    def __init__(self):
+    def __init__(self) -> None:
         intents = discord.Intents.all()
         super().__init__(intents=intents)
         self.tree = app_commands.CommandTree(self)
         self.answer_cache = {"word": None, "date": None}
 
-    async def on_ready(self):
+    async def on_ready(self) -> None:
         await self.wait_until_ready()
         await self.tree.sync()
         print(f"{self.user} has connected to Discord!")
@@ -28,7 +28,7 @@ class Client(discord.Client):
 client = Client()
 
 @client.tree.command(name="enable", description="Enable Wordle anti-cheat")
-async def enable_anticheat(interaction: discord.Interaction):
+async def enable_anticheat(interaction: discord.Interaction) -> None:
     await interaction.response.defer(ephemeral=True)
     if not interaction.user.guild_permissions.administrator:
         await interaction.followup.send(":lock: **Access denied!** This command is only for server administrators.")
@@ -41,7 +41,7 @@ async def enable_anticheat(interaction: discord.Interaction):
     await interaction.followup.send(":white_check_mark: Wordle anti-cheat **successfully enabled**.")
 
 @client.tree.command(name="disable", description="Disable Wordle anti-cheat")
-async def disable_anticheat(interaction: discord.Interaction):
+async def disable_anticheat(interaction: discord.Interaction) -> None:
     await interaction.response.defer(ephemeral=True)
     if not interaction.user.guild_permissions.administrator:
         await interaction.followup.send(":lock: **Access denied!** This command is only for server administrators.")
@@ -54,7 +54,7 @@ async def disable_anticheat(interaction: discord.Interaction):
     await interaction.followup.send(":negative_squared_cross_mark: Wordle anti-cheat **successfully disabled**.")
 
 @client.tree.command(name="status", description="Get status of Wordle anti-cheat")
-async def anticheat_status(interaction: discord.Interaction):
+async def anticheat_status(interaction: discord.Interaction) -> None:
     await interaction.response.defer(ephemeral=True)
     guild = await get_guild(interaction.guild.id)
     message = f"Wordle anti-cheat is currently **{':white_check_mark: enabled' if guild.enabled else ':negative_squared_cross_mark: disabled'}** in this server.\n"
@@ -62,17 +62,17 @@ async def anticheat_status(interaction: discord.Interaction):
     await interaction.followup.send(message)
 
 @client.event
-async def on_message(message: discord.Message):
+async def on_message(message: discord.Message) -> None:
     if message.author == client.user:
         return
     guild = await get_guild(message.guild.id)
     if not guild.enabled:
         return
-    if get_today_answer(client.answer_cache) in message.content.lower():
+    if await get_today_answer(client.answer_cache) in message.content.lower():
         await message.delete()
         await message.channel.send(f":warning: {message.author.mention}, your message has been deleted because it contained today's Wordle answer.", silent=True)
 
-def main():
+def main() -> None:
     config = load_config()
     asyncio.run(database.init_db(config.get("database_url", "sqlite+aiosqlite:///./wordle_anticheat.db")))
     client.run(config.get("bot_token"))

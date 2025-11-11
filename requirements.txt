@@ -1,5 +1,4 @@
 discord.py
-requests
 pyyaml
 sqlalchemy[asyncio]
 aiosqlite

@@ -1,17 +1,19 @@
-import requests
+import aiohttp
 import datetime
 
-def fetch_answer_from_api() -> dict:
+async def fetch_answer_from_api() -> dict:
     today_date_str = datetime.datetime.now().strftime("%Y-%m-%d")
-    r = requests.get(f"https://www.nytimes.com/svc/wordle/v2/{today_date_str}.json")
-    if r.status_code == 200:
-        return r.json()
-    raise Exception("Failed to fetch Wordle answer from API")
+    async with aiohttp.ClientSession() as session:
+        async with session.get(f"https://www.nytimes.com/svc/wordle/v2/{today_date_str}.json") as r:
+            if r.status == 200:
+                return await r.json()
+            raise Exception("Failed to fetch Wordle answer from API")
 
-def get_today_answer(answer_cache) -> str:
+async def get_today_answer(answer_cache) -> str:
     if answer_cache["date"] == datetime.date.today():
         return answer_cache["word"]
-    word = fetch_answer_from_api().get("solution", "").lower()
+    res = await fetch_answer_from_api()
+    word = res.get("solution", "").lower()
     answer_cache["word"] = word
     answer_cache["date"] = datetime.date.today()
     return word

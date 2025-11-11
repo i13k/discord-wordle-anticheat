@@ -10,5 +10,5 @@ class Guild(Base):
     discord_id = Column(Integer, unique=True, nullable=False)
     enabled = Column(Boolean, default=False, nullable=False)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<Guild id={self.id} discord_id={self.discord_id} enabled={self.enabled}>"
