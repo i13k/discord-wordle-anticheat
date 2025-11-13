@@ -82,7 +82,7 @@ cd discord-wordle-anticheat
 ```
 3. Create and activate a virtual environment (optional but recommended).
 ```bash
-# On Linux
+# On UNIX
 python3 -m venv venv
 . ./venv/bin/activate
 # On Windows (cmd)
