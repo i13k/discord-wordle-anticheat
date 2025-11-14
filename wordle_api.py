@@ -9,7 +9,7 @@ async def fetch_answer_from_api() -> str:
                 return (await r.json()).get("solution", "")
             raise Exception("Failed to fetch Wordle answer from API")
 
-async def update_answer_cache(answer_cache) -> str:
+async def update_answer_cache(answer_cache) -> tuple[datetime.date | None, str | None]:
     today = datetime.date.today()
     if answer_cache[0] == today:
         return answer_cache
