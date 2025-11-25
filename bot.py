@@ -29,6 +29,64 @@ class Client(discord.Client):
         await self.tree.sync()
         print(f"{self.user} has connected to Discord!")
 
+class SettingsEmbed(discord.Embed):
+    def __init__(self, anticheat: bool, replace_diacritics: bool, remove_not_letters: bool, reversed_detection: bool, send_messages: bool) -> None:
+        super().__init__(title="Wordle Anti-cheat Settings", color=0x0000dd)
+
+        self.add_field(
+            name="Anti-cheat Status",
+            value=":white_check_mark: Enabled" if anticheat else ":negative_squared_cross_mark: Disabled",
+            inline=False
+        )
+        self.add_field(
+            name="Replace diacritics (e.g., `ą` -> `a`)",
+            value=":white_check_mark: Enabled" if replace_diacritics else ":negative_squared_cross_mark: Disabled",
+            inline=False
+        )
+        self.add_field(
+            name="Remove not letter characters (e.g. `c|r.a-n*e` -> `crane`)",
+            value=":white_check_mark: Enabled" if remove_not_letters else ":negative_squared_cross_mark: Disabled",
+            inline=False
+        )
+        self.add_field(
+            name="Detect reversed answers (e.g., `enarc` for `crane`)",
+            value=":white_check_mark: Enabled" if reversed_detection else ":negative_squared_cross_mark: Disabled",
+            inline=False
+        )
+        self.add_field(
+            name="Send notification messages upon deletion",
+            value=":white_check_mark: Enabled" if send_messages else ":negative_squared_cross_mark: Disabled",
+            inline=False
+        )
+
+class SettingsButtonsView(discord.ui.View):
+    def __init__(self, anticheat: bool, replace_diacritics: bool, remove_not_letters: bool, reversed_detection: bool, send_messages: bool, timeout: int = 180) -> None:
+        super().__init__(timeout=timeout)
+
+        self.toggle_anticheat_button = discord.ui.Button(
+            label="Disable Anti-cheat" if anticheat else "Enable Anti-cheat",
+            style=discord.ButtonStyle.red if anticheat else discord.ButtonStyle.green
+        )
+        self.toggle_anticheat_button.callback = self.toggle_anticheat
+        self.add_item(self.toggle_anticheat_button)
+
+    async def toggle_anticheat(self, interaction: discord.Interaction) -> None:
+        guild = await get_guild(interaction.guild.id)
+        new_status = not guild.enabled
+        await change_enabled(guild, new_status)
+        self.toggle_anticheat_button.style = discord.ButtonStyle.red if new_status else discord.ButtonStyle.green
+        self.toggle_anticheat_button.label = "Disable Anti-cheat" if new_status else "Enable Anti-cheat"
+        guild = await get_guild(interaction.guild.id)
+        embed = SettingsEmbed(
+            anticheat=guild.enabled,
+            replace_diacritics=guild.replace_diacritics,
+            remove_not_letters=guild.remove_not_letters,
+            reversed_detection=guild.reversed_detection,
+            send_messages=guild.send_messages
+        )
+        await interaction.response.edit_message(embed=embed, view=self)
+        # await interaction.response.edit_message(content=f"This is an edited button response!", view=self)
+
 client = Client()
 
 # @client.tree.command(name="enable", description="Enable Wordle anti-cheat")
@@ -82,36 +140,21 @@ async def about_bot(interaction: discord.Interaction) -> None:
 async def bot_settings(interaction: discord.Interaction) -> None:
     await interaction.response.defer(ephemeral=True)
     guild = await get_guild(interaction.guild.id)
-    embed = discord.Embed(
-        title="Wordle Anti-cheat Settings",
-        color=0x0000dd
+    embed = SettingsEmbed(
+        anticheat=guild.enabled,
+        replace_diacritics=guild.replace_diacritics,
+        remove_not_letters=guild.remove_not_letters,
+        reversed_detection=guild.reversed_detection,
+        send_messages=guild.send_messages
     )
-    embed.add_field(
-        name="Anti-cheat Status",
-        value=":white_check_mark: Enabled" if guild.enabled else ":negative_squared_cross_mark: Disabled",
-        inline=False
+    view = SettingsButtonsView(
+        anticheat=guild.enabled,
+        replace_diacritics=guild.replace_diacritics,
+        remove_not_letters=guild.remove_not_letters,
+        reversed_detection=guild.reversed_detection,
+        send_messages=guild.send_messages
     )
-    embed.add_field(
-        name="Replace diacritics (e.g., `ą` -> `a`)",
-        value=":white_check_mark: Enabled" if guild.replace_diacritics else ":negative_squared_cross_mark: Disabled",
-        inline=False
-    )
-    embed.add_field(
-        name="Remove not letter characters (e.g. `c|r.a-n*e` -> `crane`)",
-        value=":white_check_mark: Enabled" if guild.remove_not_letters else ":negative_squared_cross_mark: Disabled",
-        inline=False
-    )
-    embed.add_field(
-        name="Detect reversed answers (e.g., `enarc` for `crane`)",
-        value=":white_check_mark: Enabled" if guild.reversed_detection else ":negative_squared_cross_mark: Disabled",
-        inline=False
-    )
-    embed.add_field(
-        name="Send notification messages upon deletion",
-        value=":white_check_mark: Enabled" if guild.send_messages else ":negative_squared_cross_mark: Disabled",
-        inline=False
-    )
-    await interaction.followup.send(embed=embed)
+    await interaction.followup.send(embed=embed, view=view)
 
 @client.event
 async def on_message(message: discord.Message) -> None:
