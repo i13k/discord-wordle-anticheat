@@ -66,7 +66,7 @@ client = Client()
 #     await interaction.followup.send(message)
 
 @client.tree.command(name="about", description="About the bot")
-async def anticheat_status(interaction: discord.Interaction) -> None:
+async def about_bot(interaction: discord.Interaction) -> None:
     await interaction.response.defer(ephemeral=True)
     embed = discord.Embed(
         title="Wordle Anti-cheat",
@@ -76,6 +76,41 @@ async def anticheat_status(interaction: discord.Interaction) -> None:
     embed.add_field(name="Version", value=f"`{__version__}`", inline=False)
     embed.add_field(name="Source code", value="[GitHub Repository](https://github.com/bartekl1/discord-wordle-anticheat)", inline=False)
     embed.add_field(name="License", value="GNU Affero General Public License v3.0", inline=False)
+    await interaction.followup.send(embed=embed)
+
+@client.tree.command(name="settings", description="Bot settings for this server")
+async def bot_settings(interaction: discord.Interaction) -> None:
+    await interaction.response.defer(ephemeral=True)
+    guild = await get_guild(interaction.guild.id)
+    embed = discord.Embed(
+        title="Wordle Anti-cheat Settings",
+        color=0x0000dd
+    )
+    embed.add_field(
+        name="Anti-cheat Status",
+        value=":white_check_mark: Enabled" if guild.enabled else ":negative_squared_cross_mark: Disabled",
+        inline=False
+    )
+    embed.add_field(
+        name="Replace diacritics (e.g., `ą` -> `a`)",
+        value=":white_check_mark: Enabled" if guild.replace_diacritics else ":negative_squared_cross_mark: Disabled",
+        inline=False
+    )
+    embed.add_field(
+        name="Remove not letter characters (e.g. `c|r.a-n*e` -> `crane`)",
+        value=":white_check_mark: Enabled" if guild.remove_not_letters else ":negative_squared_cross_mark: Disabled",
+        inline=False
+    )
+    embed.add_field(
+        name="Detect reversed answers (e.g., `enarc` for `crane`)",
+        value=":white_check_mark: Enabled" if guild.reversed_detection else ":negative_squared_cross_mark: Disabled",
+        inline=False
+    )
+    embed.add_field(
+        name="Send notification messages upon deletion",
+        value=":white_check_mark: Enabled" if guild.send_messages else ":negative_squared_cross_mark: Disabled",
+        inline=False
+    )
     await interaction.followup.send(embed=embed)
 
 @client.event
@@ -94,7 +129,8 @@ async def on_message(message: discord.Message) -> None:
     if client.answer_cache[1] in message_text or \
        (client.answer_cache[1][::-1] in message_text and guild.reversed_detection):
         await message.delete()
-        await message.channel.send(f":warning: {message.author.mention}, your message has been deleted because it contained today's Wordle answer.", silent=True)
+        if guild.send_messages:
+            await message.channel.send(f":warning: {message.author.mention}, your message has been deleted because it contained today's Wordle answer.", silent=True)
 
 def main() -> None:
     config = load_config()
