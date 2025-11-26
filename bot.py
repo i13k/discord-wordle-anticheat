@@ -67,20 +67,18 @@ class SettingsButtonsView(discord.ui.View):
 
 client = Client()
 
-############################################################################### <- change strings
 @client.tree.command(name="about", description="About the bot")
 async def about_bot(interaction: discord.Interaction) -> None:
     await interaction.response.defer(ephemeral=True)
     embed = discord.Embed(
-        title="Wordle Anti-cheat",
-        description="**Anti-cheat** bot for Wordle activity in Discord.\nBot deletes messages that contain Wordle answers.",
+        title=STRINGS["en"]["about"]["title"],
+        description=STRINGS["en"]["about"]["description"],
         color=0x0000dd
     )
-    embed.add_field(name="Version", value=f"`{__version__}`", inline=False)
-    embed.add_field(name="Source code", value="[GitHub Repository](https://github.com/bartekl1/discord-wordle-anticheat)", inline=False)
-    embed.add_field(name="License", value="GNU Affero General Public License v3.0", inline=False)
+    embed.add_field(name=STRINGS["en"]["about"]["version"], value=f"`{__version__}`", inline=False)
+    embed.add_field(name=STRINGS["en"]["about"]["source_code"], value=f"[{STRINGS['en']['about']['github_repository']}]({STRINGS['github_repository_url']})", inline=False)
+    embed.add_field(name=STRINGS["en"]["about"]["license"], value="GNU Affero General Public License v3.0", inline=False)
     await interaction.followup.send(embed=embed)
-############################################################################### ->
 
 @client.tree.command(name="settings", description="Bot settings for this server")
 async def bot_settings(interaction: discord.Interaction) -> None:
@@ -94,7 +92,6 @@ async def bot_settings(interaction: discord.Interaction) -> None:
         embed.set_footer(text=STRINGS["en"]["settings_only_admin"])
     await interaction.followup.send(embed=embed, view=view)
 
-############################################################################### <- to review
 @client.event
 async def on_message(message: discord.Message) -> None:
     client.answer_cache = await update_answer_cache(client.answer_cache)
@@ -112,8 +109,7 @@ async def on_message(message: discord.Message) -> None:
        (client.answer_cache[1][::-1] in message_text and guild["reversed_detection"]):
         await message.delete()
         if guild["send_messages"]:
-            await message.channel.send(f":warning: {message.author.mention}, your message has been deleted because it contained today's Wordle answer.", silent=True)
-############################################################################### ->
+            await message.channel.send(f":warning: {message.author.mention}, {STRINGS['en']['message_deleted']}", silent=True)
 
 def main() -> None:
     config = load_config()
