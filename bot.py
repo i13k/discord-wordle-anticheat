@@ -67,44 +67,6 @@ class SettingsButtonsView(discord.ui.View):
 
 client = Client()
 
-############################################################################### <- to remove
-
-# @client.tree.command(name="enable", description="Enable Wordle anti-cheat")
-# async def enable_anticheat(interaction: discord.Interaction) -> None:
-#     await interaction.response.defer(ephemeral=True)
-#     if not interaction.user.guild_permissions.administrator:
-#         await interaction.followup.send(":lock: **Access denied!** This command is only for server administrators.")
-#         return
-#     guild = await get_guild(interaction.guild.id)
-#     if guild.enabled:
-#         await interaction.followup.send(":information_source: Wordle anti-cheat is already **enabled** in this server.")
-#         return
-#     await change_enabled(guild, True)
-#     await interaction.followup.send(":white_check_mark: Wordle anti-cheat **successfully enabled**.")
-
-# @client.tree.command(name="disable", description="Disable Wordle anti-cheat")
-# async def disable_anticheat(interaction: discord.Interaction) -> None:
-#     await interaction.response.defer(ephemeral=True)
-#     if not interaction.user.guild_permissions.administrator:
-#         await interaction.followup.send(":lock: **Access denied!** This command is only for server administrators.")
-#         return
-#     guild = await get_guild(interaction.guild.id)
-#     if not guild.enabled:
-#         await interaction.followup.send(":information_source: Wordle anti-cheat is already **disabled** in this server.")
-#         return
-#     await change_enabled(guild, False)
-#     await interaction.followup.send(":negative_squared_cross_mark: Wordle anti-cheat **successfully disabled**.")
-
-# @client.tree.command(name="status", description="Get status of Wordle anti-cheat")
-# async def anticheat_status(interaction: discord.Interaction) -> None:
-#     await interaction.response.defer(ephemeral=True)
-#     guild = await get_guild(interaction.guild.id)
-#     message = f"Wordle anti-cheat is currently **{':white_check_mark: enabled' if guild.enabled else ':negative_squared_cross_mark: disabled'}** in this server.\n"
-#     message += f"Use `{'/enable' if not guild.enabled else '/disable'}` to {'enable' if not guild.enabled else 'disable'} it."
-#     await interaction.followup.send(message)
-
-############################################################################### ->
-
 ############################################################################### <- change strings
 @client.tree.command(name="about", description="About the bot")
 async def about_bot(interaction: discord.Interaction) -> None:
