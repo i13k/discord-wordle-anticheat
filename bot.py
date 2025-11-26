@@ -7,7 +7,8 @@ import re
 
 import database
 from wordle_api import update_answer_cache
-from guild_functions import get_guild, change_enabled
+from guild_functions import get_guild_settings, change_guild_settings
+from strings import STRINGS
 
 from __version__ import __version__
 
@@ -30,64 +31,41 @@ class Client(discord.Client):
         print(f"{self.user} has connected to Discord!")
 
 class SettingsEmbed(discord.Embed):
-    def __init__(self, anticheat: bool, replace_diacritics: bool, remove_not_letters: bool, reversed_detection: bool, send_messages: bool) -> None:
-        super().__init__(title="Wordle Anti-cheat Settings", color=0x0000dd)
+    def __init__(self, settings: dict) -> None:
+        super().__init__(title=STRINGS["en"]["settings"]["title"], color=0x0000dd)
 
-        self.add_field(
-            name="Anti-cheat Status",
-            value=":white_check_mark: Enabled" if anticheat else ":negative_squared_cross_mark: Disabled",
-            inline=False
-        )
-        self.add_field(
-            name="Replace diacritics (e.g., `ą` -> `a`)",
-            value=":white_check_mark: Enabled" if replace_diacritics else ":negative_squared_cross_mark: Disabled",
-            inline=False
-        )
-        self.add_field(
-            name="Remove not letter characters (e.g. `c|r.a-n*e` -> `crane`)",
-            value=":white_check_mark: Enabled" if remove_not_letters else ":negative_squared_cross_mark: Disabled",
-            inline=False
-        )
-        self.add_field(
-            name="Detect reversed answers (e.g., `enarc` for `crane`)",
-            value=":white_check_mark: Enabled" if reversed_detection else ":negative_squared_cross_mark: Disabled",
-            inline=False
-        )
-        self.add_field(
-            name="Send notification messages upon deletion",
-            value=":white_check_mark: Enabled" if send_messages else ":negative_squared_cross_mark: Disabled",
-            inline=False
-        )
+        for key, value in settings.items():
+            self.add_field(
+                name=STRINGS["en"]["settings"]["setting_names"][key],
+                value=":white_check_mark: " + STRINGS["en"]["settings"]["enabled"] if value else ":negative_squared_cross_mark: " + STRINGS["en"]["settings"]["disabled"],
+                inline=False
+            )
 
 class SettingsButtonsView(discord.ui.View):
-    def __init__(self, anticheat: bool, replace_diacritics: bool, remove_not_letters: bool, reversed_detection: bool, send_messages: bool, timeout: int = 180) -> None:
+    def __init__(self, settings: dict, timeout: int = 180) -> None:
         super().__init__(timeout=timeout)
 
-        self.toggle_anticheat_button = discord.ui.Button(
-            label="Disable Anti-cheat" if anticheat else "Enable Anti-cheat",
-            style=discord.ButtonStyle.red if anticheat else discord.ButtonStyle.green
-        )
-        self.toggle_anticheat_button.callback = self.toggle_anticheat
-        self.add_item(self.toggle_anticheat_button)
+        self.buttons = {}
+        for key, value in settings.items():
+            self.buttons[key] = discord.ui.Button(
+                label=(STRINGS["en"]["settings"]["disable"] if value else STRINGS["en"]["settings"]["enable"]) \
+                      + " " + STRINGS["en"]["settings"]["toggle_setting_names"][key],
+                style=discord.ButtonStyle.red if value else discord.ButtonStyle.green,
+                disabled=not settings["anticheat"] and key != "anticheat"
+            )
+            self.buttons[key].callback = lambda interaction, key=key, value=not value: self.toggle_setting(interaction, key, value)
+            self.add_item(self.buttons[key])
 
-    async def toggle_anticheat(self, interaction: discord.Interaction) -> None:
-        guild = await get_guild(interaction.guild.id)
-        new_status = not guild.enabled
-        await change_enabled(guild, new_status)
-        self.toggle_anticheat_button.style = discord.ButtonStyle.red if new_status else discord.ButtonStyle.green
-        self.toggle_anticheat_button.label = "Disable Anti-cheat" if new_status else "Enable Anti-cheat"
-        guild = await get_guild(interaction.guild.id)
-        embed = SettingsEmbed(
-            anticheat=guild.enabled,
-            replace_diacritics=guild.replace_diacritics,
-            remove_not_letters=guild.remove_not_letters,
-            reversed_detection=guild.reversed_detection,
-            send_messages=guild.send_messages
-        )
-        await interaction.response.edit_message(embed=embed, view=self)
-        # await interaction.response.edit_message(content=f"This is an edited button response!", view=self)
+    async def toggle_setting(self, interaction: discord.Interaction, setting_key: str, new_value: bool) -> None:
+        await change_guild_settings(interaction.guild.id, {setting_key: new_value})
+        new_settings = await get_guild_settings(interaction.guild.id)
+        embed = SettingsEmbed(settings=new_settings)
+        view = SettingsButtonsView(settings=new_settings)
+        await interaction.response.edit_message(embed=embed, view=view)
 
 client = Client()
+
+############################################################################### <- to remove
 
 # @client.tree.command(name="enable", description="Enable Wordle anti-cheat")
 # async def enable_anticheat(interaction: discord.Interaction) -> None:
@@ -123,6 +101,9 @@ client = Client()
 #     message += f"Use `{'/enable' if not guild.enabled else '/disable'}` to {'enable' if not guild.enabled else 'disable'} it."
 #     await interaction.followup.send(message)
 
+############################################################################### ->
+
+############################################################################### <- change strings
 @client.tree.command(name="about", description="About the bot")
 async def about_bot(interaction: discord.Interaction) -> None:
     await interaction.response.defer(ephemeral=True)
@@ -135,45 +116,36 @@ async def about_bot(interaction: discord.Interaction) -> None:
     embed.add_field(name="Source code", value="[GitHub Repository](https://github.com/bartekl1/discord-wordle-anticheat)", inline=False)
     embed.add_field(name="License", value="GNU Affero General Public License v3.0", inline=False)
     await interaction.followup.send(embed=embed)
+############################################################################### ->
 
 @client.tree.command(name="settings", description="Bot settings for this server")
 async def bot_settings(interaction: discord.Interaction) -> None:
     await interaction.response.defer(ephemeral=True)
-    guild = await get_guild(interaction.guild.id)
-    embed = SettingsEmbed(
-        anticheat=guild.enabled,
-        replace_diacritics=guild.replace_diacritics,
-        remove_not_letters=guild.remove_not_letters,
-        reversed_detection=guild.reversed_detection,
-        send_messages=guild.send_messages
-    )
-    view = SettingsButtonsView(
-        anticheat=guild.enabled,
-        replace_diacritics=guild.replace_diacritics,
-        remove_not_letters=guild.remove_not_letters,
-        reversed_detection=guild.reversed_detection,
-        send_messages=guild.send_messages
-    )
+    current_settings = await get_guild_settings(interaction.guild.id)
+    embed = SettingsEmbed(settings=current_settings)
+    view = SettingsButtonsView(settings=current_settings)
     await interaction.followup.send(embed=embed, view=view)
 
+############################################################################### <- to review
 @client.event
 async def on_message(message: discord.Message) -> None:
     client.answer_cache = await update_answer_cache(client.answer_cache)
     if message.author == client.user:
         return
-    guild = await get_guild(message.guild.id)
-    if not guild.enabled:
+    guild = await get_guild_settings(message.guild.id)
+    if not guild["anticheat"]:
         return
 
     message_text = message.content.lower()
-    message_text = unidecode(message_text) if guild.replace_diacritics else message_text
-    message_text = re.sub(r"[^A-Za-z]", "", message_text).lower() if guild.remove_not_letters else message_text
+    message_text = unidecode(message_text) if guild["replace_diacritics"] else message_text
+    message_text = re.sub(r"[^A-Za-z]", "", message_text).lower() if guild["remove_not_letters"] else message_text
 
     if client.answer_cache[1] in message_text or \
-       (client.answer_cache[1][::-1] in message_text and guild.reversed_detection):
+       (client.answer_cache[1][::-1] in message_text and guild["reversed_detection"]):
         await message.delete()
-        if guild.send_messages:
+        if guild["send_messages"]:
             await message.channel.send(f":warning: {message.author.mention}, your message has been deleted because it contained today's Wordle answer.", silent=True)
+############################################################################### ->
 
 def main() -> None:
     config = load_config()
