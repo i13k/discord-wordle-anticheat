@@ -20,6 +20,7 @@ STRINGS = {
             "disabled": "Disabled",
             "enable": "Enable",
             "disable": "Disable",
-        }
+        },
+        "settings_only_admin": "You need to be a server administrator to change these settings.",
     }
 }

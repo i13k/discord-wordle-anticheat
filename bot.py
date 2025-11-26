@@ -57,6 +57,8 @@ class SettingsButtonsView(discord.ui.View):
             self.add_item(self.buttons[key])
 
     async def toggle_setting(self, interaction: discord.Interaction, setting_key: str, new_value: bool) -> None:
+        if not interaction.user.guild_permissions.administrator:
+            return
         await change_guild_settings(interaction.guild.id, {setting_key: new_value})
         new_settings = await get_guild_settings(interaction.guild.id)
         embed = SettingsEmbed(settings=new_settings)
@@ -123,7 +125,11 @@ async def bot_settings(interaction: discord.Interaction) -> None:
     await interaction.response.defer(ephemeral=True)
     current_settings = await get_guild_settings(interaction.guild.id)
     embed = SettingsEmbed(settings=current_settings)
-    view = SettingsButtonsView(settings=current_settings)
+    if interaction.user.guild_permissions.administrator:
+        view = SettingsButtonsView(settings=current_settings)
+    else:
+        view = discord.ui.View()
+        embed.set_footer(text=STRINGS["en"]["settings_only_admin"])
     await interaction.followup.send(embed=embed, view=view)
 
 ############################################################################### <- to review
