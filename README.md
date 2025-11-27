@@ -140,13 +140,35 @@ sudo systemctl enable discord-wordle-anticheat
 sudo systemctl start discord-wordle-anticheat
 ```
 
+### Updating to the latest version
+
+1. Download latest source code from the repository.
+```bash
+git pull
+```
+
+2. Install new PIP dependencies.
+```bash
+pip install -r requirements.txt
+```
+
+3. Upgrade the database.
+```bash
+alembic upgrade head
+```
+
+4. Restart the bot (if running as a service).
+```bash
+sudo systemctl restart discord-wordle-anticheat
+```
+
 ## ⚙️ Bot usage
 
-Use `/enable` command to enable or `/disable` command to disable anti-cheat in the server. Only users with `Administrator` permission can use these commands.
+For default the bot is disabled. You can enable it in the settings (`/settings` command). Everyone can view settings, but only administrators can change them.
 
-Use `/status` command to check if anti-cheat is currently enabled in the server.
+If anti-cheat is enabled, the bot will automatically delete messages containing Wordle answers and send a message notifying the user about the deletion (if notifications are also enabled).
 
-If anti-cheat is enabled, the bot will automatically delete messages containing Wordle answers and send a message notifying the user about the deletion.
+Available commands are: `/settings`, `/about`.
 
 ## 📜 License
 
