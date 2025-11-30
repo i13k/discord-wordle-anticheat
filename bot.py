@@ -103,7 +103,7 @@ async def on_message(message: discord.Message) -> None:
         return
     
     if message.author.id == WORDLE_BOT_ID and guild["delete_wordle_messages"]:
-        await message.delete()
+        if not message.content.startswith("**Y"): await message.delete()
         return
     
     client.answer_cache = await update_answer_cache(client.answer_cache)
